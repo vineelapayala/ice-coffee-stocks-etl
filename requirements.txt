@@ -1,0 +1,7 @@
+pandas
+requests
+xlrd
+pymongo
+python-dotenv
+pytest
+nodriver

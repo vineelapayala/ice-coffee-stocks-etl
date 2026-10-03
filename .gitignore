@@ -1,0 +1,32 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Raw ICE data
+data/raw/
+
+# Generated processed data
+data/processed/
+
+# VS Code settings
+.vscode/
+
+# Windows files
+desktop.ini
+
+# OS files
+.DS_Store
+Thumbs.db

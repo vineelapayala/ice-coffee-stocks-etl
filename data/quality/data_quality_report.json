@@ -1,0 +1,78 @@
+{
+    "report_metadata": {
+        "dataset": "ICE Certified Coffee Stocks",
+        "generated_at": "2026-10-04T02:57:33.441189"
+    },
+    "source_files": {
+        "arabica_files_found": 252,
+        "robusta_files_found": 254,
+        "robusta_files_selected_for_parsing": 253,
+        "identical_duplicate_groups": 1
+    },
+    "dataset_summary": {
+        "total_rows": 11579,
+        "arabica_rows": 10020,
+        "robusta_rows": 1559,
+        "report_date_start": "2025-10-03",
+        "report_date_end": "2026-10-02"
+    },
+    "distributions": {
+        "coffee_type": {
+            "Arabica": 10020,
+            "Robusta": 1559
+        },
+        "stock_category": {
+            "TOTAL_BAGS_CERTIFIED": 10020,
+            "VALID_CERTIFICATE": 1150,
+            "NON_TENDERABLE": 363,
+            "SUSPENDED": 46
+        },
+        "unit": {
+            "bags": 10020,
+            "lots": 1559
+        },
+        "location_code": {
+            "ANT": 4257,
+            "HA/BR": 2267,
+            "NY": 1294,
+            "MIAMI": 1082,
+            "HOU": 894,
+            "NOLA": 751,
+            "LON": 344,
+            "BAR": 250,
+            "FEL": 230,
+            "TRI": 115,
+            "NOR": 78,
+            "GEN": 17
+        }
+    },
+    "null_checks": {
+        "null_counts_by_column": {
+            "report_date": 0,
+            "cut_off_date": 10020,
+            "coffee_type": 0,
+            "origin": 1559,
+            "location_code": 0,
+            "stock_category": 0,
+            "quantity": 0,
+            "unit": 0
+        },
+        "null_quantity_count": 0
+    },
+    "duplicate_checks": {
+        "duplicate_row_count": 0
+    },
+    "quantity_checks": {
+        "negative_quantity_count": 0,
+        "zero_quantity_count": 0
+    },
+    "quality_status": {
+        "validation_passed": true,
+        "schema_valid": true,
+        "required_fields_valid": true,
+        "coffee_type_valid": true,
+        "units_valid": true,
+        "quantities_valid": true,
+        "duplicates_valid": true
+    }
+}
