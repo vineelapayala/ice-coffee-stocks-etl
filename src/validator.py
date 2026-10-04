@@ -170,7 +170,7 @@ def validate_dates(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate report and cut-off dates."""
+    """Validate report and Robusta cut-off dates."""
 
     report_dates = pd.to_datetime(
         df["report_date"],
@@ -232,9 +232,7 @@ def validate_report(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """
-    Run all quality checks for a parsed report.
-    """
+    """Run all quality checks for a parsed report."""
 
     validate_schema(
         df,
@@ -275,187 +273,16 @@ def validate_report(
 def validate_consolidated_dataset(
     df: pd.DataFrame,
 ) -> None:
-    """
-    Run final quality checks on the consolidated dataset.
-    """
+    """Run final quality checks on the consolidated dataset."""
 
     if df.empty:
         raise ValueError(
             "Consolidated dataset is empty."
         )
 
-    # ---------------------------------------------------------
-    # Required columns
-    # ---------------------------------------------------------
+    file_path = Path("consolidated_dataset")
 
-    validate_schema(
+    validate_report(
         df,
-        Path("consolidated_dataset"),
+        file_path,
     )
-
-    # ---------------------------------------------------------
-    # Required fields
-    # ---------------------------------------------------------
-
-    required_columns = [
-        "report_date",
-        "coffee_type",
-        "location_code",
-        "stock_category",
-        "quantity",
-        "unit",
-    ]
-
-    for column in required_columns:
-        null_count = df[column].isna().sum()
-
-        if null_count > 0:
-            raise ValueError(
-                f"Consolidated dataset contains "
-                f"{null_count} null value(s) in "
-                f"'{column}'."
-            )
-
-    # ---------------------------------------------------------
-    # Coffee types
-    # ---------------------------------------------------------
-
-    valid_types = {
-        "Arabica",
-        "Robusta",
-    }
-
-    invalid_types = set(
-        df["coffee_type"].unique()
-    ) - valid_types
-
-    if invalid_types:
-        raise ValueError(
-            f"Invalid coffee types found: "
-            f"{invalid_types}"
-        )
-
-    # ---------------------------------------------------------
-    # Quantity
-    # ---------------------------------------------------------
-
-    if df["quantity"].isna().any():
-        raise ValueError(
-            "Consolidated dataset contains "
-            "null quantities."
-        )
-
-    if (df["quantity"] < 0).any():
-        raise ValueError(
-            "Consolidated dataset contains "
-            "negative quantities."
-        )
-
-    # ---------------------------------------------------------
-    # Units
-    # ---------------------------------------------------------
-
-    if not df.loc[
-        df["coffee_type"] == "Arabica",
-        "unit",
-    ].eq("bags").all():
-        raise ValueError(
-            "Arabica records must use bags."
-        )
-
-    if not df.loc[
-        df["coffee_type"] == "Robusta",
-        "unit",
-    ].eq("lots").all():
-        raise ValueError(
-            "Robusta records must use lots."
-        )
-
-    # ---------------------------------------------------------
-    # Duplicate natural grain
-    # ---------------------------------------------------------
-
-    grain_columns = [
-        "report_date",
-        "cut_off_date",
-        "coffee_type",
-        "origin",
-        "location_code",
-        "stock_category",
-        "unit",
-    ]
-
-    duplicates = df[
-        df.duplicated(
-            subset=grain_columns,
-            keep=False,
-        )
-    ].sort_values(
-        by=grain_columns
-    )
-
-    if not duplicates.empty:
-        print("\nDuplicate records found:")
-        print(
-            duplicates.to_string(
-                index=False
-            )
-        )
-
-        raise ValueError(
-            "Consolidated dataset contains "
-            f"{len(duplicates)} duplicate row(s) "
-            "at the expected natural grain."
-        )
-
-
-def generate_quality_report(
-    df: pd.DataFrame,
-) -> dict:
-    """
-    Generate summary data-quality metrics
-    for the consolidated dataset.
-    """
-
-    grain_columns = [
-        "report_date",
-        "cut_off_date",
-        "coffee_type",
-        "origin",
-        "location_code",
-        "stock_category",
-        "unit",
-    ]
-
-    return {
-        "total_rows": len(df),
-        "total_columns": len(df.columns),
-        "date_min": df["report_date"].min(),
-        "date_max": df["report_date"].max(),
-        "arabica_rows": int(
-            (df["coffee_type"] == "Arabica").sum()
-        ),
-        "robusta_rows": int(
-            (df["coffee_type"] == "Robusta").sum()
-        ),
-        "null_values": int(
-            df.isna().sum().sum()
-        ),
-        "duplicate_rows": int(
-            df.duplicated(
-                subset=grain_columns
-            ).sum()
-        ),
-        "negative_quantities": int(
-            (df["quantity"] < 0).sum()
-        ),
-        "unique_report_dates": int(
-            df["report_date"].nunique()
-        ),
-        "unique_locations": int(
-            df["location_code"].nunique()
-        ),
-        "unique_stock_categories": int(
-            df["stock_category"].nunique()
-        ),
-    }

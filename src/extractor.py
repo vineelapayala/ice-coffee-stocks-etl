@@ -1,8 +1,12 @@
 from datetime import date
 from pathlib import Path
-import time
 
-import requests
+from src.utils.file_utils import save_file
+from src.utils.http_utils import (
+    DEFAULT_TIMEOUT,
+    create_session,
+    get_retry_wait_seconds,
+)
 
 
 ARABICA_BASE_URL = (
@@ -23,9 +27,15 @@ DEFAULT_HEADERS = {
 def download_arabica_report(
     report_date: date,
     output_dir: Path,
-    session: requests.Session | None = None,
     max_retries: int = 3,
 ) -> Path | None:
+    """
+    Download an ICE Arabica certified stock report.
+
+    Returns:
+        Path to the downloaded file, or None when
+        the report is unavailable.
+    """
 
     date_string = report_date.strftime("%Y%m%d")
 
@@ -42,9 +52,7 @@ def download_arabica_report(
         exist_ok=True,
     )
 
-    output_path = (
-        output_dir / file_name
-    )
+    output_path = output_dir / file_name
 
     if output_path.exists():
         print(
@@ -52,23 +60,17 @@ def download_arabica_report(
         )
         return output_path
 
-    client = (
-        session
-        if session is not None
-        else requests.Session()
-    )
+    with create_session() as client:
 
-    for attempt in range(
-        1,
-        max_retries + 1,
-    ):
-
-        try:
+        for attempt in range(
+            1,
+            max_retries + 1,
+        ):
 
             response = client.get(
                 url,
                 headers=DEFAULT_HEADERS,
-                timeout=30,
+                timeout=DEFAULT_TIMEOUT,
             )
 
             # Report genuinely does not exist.
@@ -84,27 +86,14 @@ def download_arabica_report(
             # ICE rate limit.
             if response.status_code == 429:
 
-                retry_after = (
-                    response.headers.get(
-                        "Retry-After"
-                    )
+                retry_after = response.headers.get(
+                    "Retry-After"
                 )
 
-                if retry_after:
-
-                    try:
-                        wait_seconds = int(
-                            retry_after
-                        )
-                    except ValueError:
-                        wait_seconds = 60
-
-                else:
-
-                    wait_seconds = min(
-                        60 * (2 ** (attempt - 1)),
-                        900,
-                    )
+                wait_seconds = get_retry_wait_seconds(
+                    retry_after=retry_after,
+                    attempt=attempt,
+                )
 
                 print(
                     f"HTTP 429 for "
@@ -118,11 +107,18 @@ def download_arabica_report(
                     f"{attempt}/{max_retries}..."
                 )
 
-                time.sleep(
-                    wait_seconds
-                )
+                if attempt < max_retries:
+                    import time
 
-                continue
+                    time.sleep(
+                        wait_seconds
+                    )
+                    continue
+
+                raise RuntimeError(
+                    "Maximum retries exceeded "
+                    f"for Arabica report: {report_date}"
+                )
 
             response.raise_for_status()
 
@@ -144,8 +140,9 @@ def download_arabica_report(
                     f"to be an XLS file: {url}"
                 )
 
-            output_path.write_bytes(
-                response.content
+            save_file(
+                content=response.content,
+                output_path=output_path,
             )
 
             print(
@@ -154,37 +151,7 @@ def download_arabica_report(
 
             return output_path
 
-        except requests.RequestException as exc:
-
-            if attempt == max_retries:
-
-                raise RuntimeError(
-                    "Failed to download "
-                    f"Arabica report for "
-                    f"{report_date}: {exc}"
-                ) from exc
-
-            wait_seconds = min(
-                10 * (2 ** (attempt - 1)),
-                120,
-            )
-
-            print(
-                f"Request failed for "
-                f"{report_date}: {exc}"
-            )
-
-            print(
-                f"Retrying in "
-                f"{wait_seconds} seconds..."
-            )
-
-            time.sleep(
-                wait_seconds
-            )
-
     raise RuntimeError(
-        f"Failed to download "
-        f"Arabica report for "
-        f"{report_date}"
+        "Failed to download "
+        f"Arabica report for {report_date}"
     )

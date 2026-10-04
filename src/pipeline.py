@@ -3,7 +3,7 @@ import re
 
 import pandas as pd
 
-from src.file_utils import calculate_file_hash
+from src.utils.file_utils import calculate_file_hash
 from src.parser import parse_arabica_report
 from src.robusta_parser import parse_robusta_report
 from src.validator import (
@@ -60,6 +60,7 @@ def _deduplicate_robusta_files(
     report date.
 
     If multiple files have:
+
         1. The same report date
         2. The same SHA-256 hash
 
@@ -77,11 +78,14 @@ def _deduplicate_robusta_files(
             Number of identical duplicate groups detected.
     """
 
-    print("\nChecking Robusta source files for duplicates...")
+    print(
+        "\nChecking Robusta source files for duplicates..."
+    )
 
     file_metadata = []
 
     for file_path in robusta_files:
+
         report_datetime = (
             _extract_robusta_report_datetime(
                 file_path
@@ -106,25 +110,27 @@ def _deduplicate_robusta_files(
     )
 
     selected_files = []
-
     duplicate_groups = []
 
     for report_date, group in metadata_df.groupby(
         "report_date"
     ):
-        # ---------------------------------------------------------
+
+        # --------------------------------------------------------------
         # Only one file exists for this report date.
-        # ---------------------------------------------------------
+        # --------------------------------------------------------------
 
         if len(group) == 1:
+
             selected_files.append(
                 group.iloc[0]["file_path"]
             )
+
             continue
 
-        # ---------------------------------------------------------
+        # --------------------------------------------------------------
         # Group same-date files by SHA-256.
-        # ---------------------------------------------------------
+        # --------------------------------------------------------------
 
         hash_groups = group.groupby(
             "hash"
@@ -133,17 +139,20 @@ def _deduplicate_robusta_files(
         for file_hash, hash_group in hash_groups:
 
             if len(hash_group) == 1:
+
                 # Different content for the same report date.
                 # Do not silently discard it.
+
                 selected_files.append(
                     hash_group.iloc[0]["file_path"]
                 )
+
                 continue
 
-            # -----------------------------------------------------
+            # ----------------------------------------------------------
             # Identical files for the same report date.
             # Keep the latest timestamp.
-            # -----------------------------------------------------
+            # ----------------------------------------------------------
 
             latest_row = hash_group.sort_values(
                 "report_datetime"
@@ -166,17 +175,19 @@ def _deduplicate_robusta_files(
                 }
             )
 
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
     # Report duplicate files
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
 
     if duplicate_groups:
+
         print(
             f"\nIdentical duplicate groups found: "
             f"{len(duplicate_groups)}"
         )
 
         for duplicate in duplicate_groups:
+
             print(
                 f"\nReport date: "
                 f"{duplicate['report_date']}"
@@ -185,6 +196,7 @@ def _deduplicate_robusta_files(
             print("Duplicate files:")
 
             for file_path in duplicate["files"]:
+
                 print(
                     f"  - {file_path.name}"
                 )
@@ -195,33 +207,33 @@ def _deduplicate_robusta_files(
             )
 
     else:
+
         print(
             "No identical Robusta duplicate files found."
         )
 
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
     # Check for same-date files with different content
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
 
     conflicting_dates = (
-        metadata_df.groupby("report_date")
-        ["hash"]
+        metadata_df.groupby("report_date")["hash"]
         .nunique()
     )
 
-    conflicting_dates = (
-        conflicting_dates[
-            conflicting_dates > 1
-        ]
-    )
+    conflicting_dates = conflicting_dates[
+        conflicting_dates > 1
+    ]
 
     if not conflicting_dates.empty:
+
         print(
             "\nWARNING: Multiple different files "
             "were found for the same report date:"
         )
 
         for report_date in conflicting_dates.index:
+
             print(
                 f"  - {report_date}"
             )
@@ -235,8 +247,8 @@ def _deduplicate_robusta_files(
 
     selected_files = sorted(
         selected_files,
-        key=lambda path: _extract_robusta_report_datetime(
-            path
+        key=lambda path: (
+            _extract_robusta_report_datetime(path)
         ),
     )
 
@@ -250,74 +262,21 @@ def _deduplicate_robusta_files(
         f"{len(selected_files)}"
     )
 
-    return selected_files, len(duplicate_groups)
+    return (
+        selected_files,
+        len(duplicate_groups),
+    )
 
 
-def build_consolidated_dataset(
-    arabica_dir: Path,
-    robusta_dir: Path,
-) -> tuple[pd.DataFrame, dict]:
+def _process_arabica_files(
+    arabica_files: list[Path],
+) -> list[pd.DataFrame]:
     """
-    Parse, validate, and consolidate all Arabica and
-    Robusta ICE stock reports into a normalized dataset.
+    Parse and validate all Arabica reports.
 
     Returns:
-        A tuple containing:
-
-        1. Consolidated validated DataFrame.
-        2. Pipeline statistics dictionary.
+        List of validated Arabica DataFrames.
     """
-
-    # ---------------------------------------------------------
-    # 1. Discover report files
-    # ---------------------------------------------------------
-
-    arabica_files = sorted(
-        arabica_dir.glob("*.xls")
-    )
-
-    robusta_files = sorted(
-        robusta_dir.glob("*.csv")
-    )
-
-    if not arabica_files:
-        raise FileNotFoundError(
-            f"No Arabica XLS files found in {arabica_dir}"
-        )
-
-    if not robusta_files:
-        raise FileNotFoundError(
-            f"No Robusta CSV files found in {robusta_dir}"
-        )
-
-    # Preserve the original source-file counts before
-    # Robusta deduplication.
-    arabica_file_count = len(arabica_files)
-    robusta_file_count = len(robusta_files)
-
-    print(
-        f"Arabica reports found: "
-        f"{arabica_file_count}"
-    )
-
-    print(
-        f"Robusta reports found: "
-        f"{robusta_file_count}"
-    )
-
-    # ---------------------------------------------------------
-    # 2. Deduplicate identical Robusta source files
-    # ---------------------------------------------------------
-
-    selected_robusta_files, duplicate_groups_count = (
-        _deduplicate_robusta_files(
-            robusta_files
-        )
-    )
-
-    # ---------------------------------------------------------
-    # 3. Parse and validate all Arabica reports
-    # ---------------------------------------------------------
 
     arabica_frames = []
 
@@ -325,6 +284,7 @@ def build_consolidated_dataset(
         arabica_files,
         start=1,
     ):
+
         print(
             f"[Arabica {index}/{len(arabica_files)}] "
             f"{file_path.name}"
@@ -351,18 +311,28 @@ def build_consolidated_dataset(
             "No Arabica reports were successfully parsed."
         )
 
-    # ---------------------------------------------------------
-    # 4. Parse and validate all Robusta reports
-    # ---------------------------------------------------------
+    return arabica_frames
+
+
+def _process_robusta_files(
+    robusta_files: list[Path],
+) -> list[pd.DataFrame]:
+    """
+    Parse and validate all Robusta reports.
+
+    Returns:
+        List of validated Robusta DataFrames.
+    """
 
     robusta_frames = []
 
     for index, file_path in enumerate(
-        selected_robusta_files,
+        robusta_files,
         start=1,
     ):
+
         print(
-            f"[Robusta {index}/{len(selected_robusta_files)}] "
+            f"[Robusta {index}/{len(robusta_files)}] "
             f"{file_path.name}"
         )
 
@@ -384,18 +354,99 @@ def build_consolidated_dataset(
             "No Robusta reports were successfully parsed."
         )
 
-    # ---------------------------------------------------------
-    # 5. Consolidate all reports
-    # ---------------------------------------------------------
+    return robusta_frames
+
+
+def build_consolidated_dataset(
+    arabica_dir: Path,
+    robusta_dir: Path,
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Parse, validate, and consolidate all Arabica and
+    Robusta ICE stock reports into a normalized dataset.
+
+    Returns:
+        A tuple containing:
+
+        1. Consolidated validated DataFrame.
+        2. Pipeline statistics dictionary.
+    """
+
+    # ------------------------------------------------------------------
+    # 1. Discover report files
+    # ------------------------------------------------------------------
+
+    arabica_files = sorted(
+        arabica_dir.glob("*.xls")
+    )
+
+    robusta_files = sorted(
+        robusta_dir.glob("*.csv")
+    )
+
+    if not arabica_files:
+        raise FileNotFoundError(
+            f"No Arabica XLS files found in {arabica_dir}"
+        )
+
+    if not robusta_files:
+        raise FileNotFoundError(
+            f"No Robusta CSV files found in {robusta_dir}"
+        )
+
+    arabica_file_count = len(
+        arabica_files
+    )
+
+    robusta_file_count = len(
+        robusta_files
+    )
+
+    print(
+        f"Arabica reports found: "
+        f"{arabica_file_count}"
+    )
+
+    print(
+        f"Robusta reports found: "
+        f"{robusta_file_count}"
+    )
+
+    # ------------------------------------------------------------------
+    # 2. Deduplicate identical Robusta source files
+    # ------------------------------------------------------------------
+
+    (
+        selected_robusta_files,
+        duplicate_groups_count,
+    ) = _deduplicate_robusta_files(
+        robusta_files
+    )
+
+    # ------------------------------------------------------------------
+    # 3. Parse and validate reports
+    # ------------------------------------------------------------------
+
+    arabica_frames = _process_arabica_files(
+        arabica_files
+    )
+
+    robusta_frames = _process_robusta_files(
+        selected_robusta_files
+    )
+
+    # ------------------------------------------------------------------
+    # 4. Consolidate all reports
+    # ------------------------------------------------------------------
 
     combined_df = pd.concat(
         arabica_frames + robusta_frames,
         ignore_index=True,
     )
 
-    # ---------------------------------------------------------
-    # 6. Standardize data types
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 5. Standardize data types
+    # ------------------------------------------------------------------
 
     combined_df["report_date"] = (
         pd.to_datetime(
@@ -418,9 +469,9 @@ def build_consolidated_dataset(
         errors="coerce",
     )
 
-    # ---------------------------------------------------------
-    # 7. Final consolidated-data validation
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 6. Final consolidated-data validation
+    # ------------------------------------------------------------------
 
     validate_consolidated_dataset(
         combined_df
@@ -445,9 +496,9 @@ def build_consolidated_dataset(
         f"{(combined_df['coffee_type'] == 'Robusta').sum():,}"
     )
 
-    # ---------------------------------------------------------
-    # 8. Sort final dataset
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 7. Sort final dataset
+    # ------------------------------------------------------------------
 
     combined_df = combined_df.sort_values(
         by=[
@@ -464,9 +515,9 @@ def build_consolidated_dataset(
         drop=True
     )
 
-    # ---------------------------------------------------------
-    # 9. Build pipeline statistics
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 8. Build pipeline statistics
+    # ------------------------------------------------------------------
 
     pipeline_stats = {
         "arabica_files_found": arabica_file_count,
@@ -474,11 +525,9 @@ def build_consolidated_dataset(
         "robusta_files_selected_for_parsing": len(
             selected_robusta_files
         ),
-        "identical_duplicate_groups": duplicate_groups_count,
+        "identical_duplicate_groups": (
+            duplicate_groups_count
+        ),
     }
-
-    # ---------------------------------------------------------
-    # 10. Return final DataFrame + statistics
-    # ---------------------------------------------------------
 
     return combined_df, pipeline_stats

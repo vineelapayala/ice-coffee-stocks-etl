@@ -4,6 +4,87 @@ import json
 import pandas as pd
 
 
+def _get_date_coverage(
+    df: pd.DataFrame,
+    coffee_type: str,
+) -> dict:
+    """
+    Calculate report-date coverage for a coffee type.
+
+    Missing calendar dates are reported for completeness analysis,
+    but are not treated as validation failures because source
+    reports may not be published on every calendar day.
+    """
+
+    coffee_df = df[
+        df["coffee_type"] == coffee_type
+    ].copy()
+
+    report_dates = (
+        pd.to_datetime(
+            coffee_df["report_date"],
+            errors="coerce",
+        )
+        .dropna()
+        .dt.normalize()
+        .drop_duplicates()
+        .sort_values()
+    )
+
+    if report_dates.empty:
+        return {
+            "distinct_report_dates": 0,
+            "report_date_start": None,
+            "report_date_end": None,
+            "missing_calendar_dates": 0,
+            "missing_dates": [],
+        }
+
+    start_date = report_dates.iloc[0]
+    end_date = report_dates.iloc[-1]
+
+    expected_dates = pd.date_range(
+        start=start_date,
+        end=end_date,
+        freq="D",
+    )
+
+    observed_dates = set(report_dates)
+
+    missing_dates = [
+        date.strftime("%Y-%m-%d")
+        for date in expected_dates
+        if date not in observed_dates
+    ]
+
+    return {
+        "distinct_report_dates": int(
+            len(report_dates)
+        ),
+        "report_date_start": (
+            start_date.strftime("%Y-%m-%d")
+        ),
+        "report_date_end": (
+            end_date.strftime("%Y-%m-%d")
+        ),
+        "missing_calendar_dates": int(
+            len(missing_dates)
+        ),
+        "missing_dates": missing_dates,
+    }
+
+
+def _get_value_counts(
+    series: pd.Series,
+) -> dict:
+    """Return value counts as JSON-serializable integers."""
+
+    return {
+        str(key): int(value)
+        for key, value in series.value_counts().items()
+    }
+
+
 def generate_quality_report(
     df: pd.DataFrame,
     arabica_file_count: int,
@@ -16,11 +97,14 @@ def generate_quality_report(
     Generate a data quality report for the validated consolidated dataset.
 
     The report is generated from the validated DataFrame and records
-    source-file statistics, dataset statistics, nulls, duplicates,
-    and validation-related metrics.
+    source-file statistics, dataset statistics, date coverage, nulls,
+    duplicates, and validation-related metrics.
     """
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     # ------------------------------------------------------------------
     # Basic dataset information
@@ -42,6 +126,16 @@ def generate_quality_report(
 
     report_date_min = df["report_date"].min()
     report_date_max = df["report_date"].max()
+
+    arabica_date_coverage = _get_date_coverage(
+        df,
+        "Arabica",
+    )
+
+    robusta_date_coverage = _get_date_coverage(
+        df,
+        "Robusta",
+    )
 
     # ------------------------------------------------------------------
     # Null information
@@ -93,29 +187,25 @@ def generate_quality_report(
     # Category distributions
     # ------------------------------------------------------------------
 
-    coffee_type_counts = {
-        str(key): int(value)
-        for key, value in df["coffee_type"].value_counts().items()
-    }
+    coffee_type_counts = _get_value_counts(
+        df["coffee_type"]
+    )
 
-    stock_category_counts = {
-        str(key): int(value)
-        for key, value in df["stock_category"].value_counts().items()
-    }
+    stock_category_counts = _get_value_counts(
+        df["stock_category"]
+    )
 
-    unit_counts = {
-        str(key): int(value)
-        for key, value in df["unit"].value_counts().items()
-    }
+    unit_counts = _get_value_counts(
+        df["unit"]
+    )
 
     # ------------------------------------------------------------------
     # Location information
     # ------------------------------------------------------------------
 
-    location_counts = {
-        str(key): int(value)
-        for key, value in df["location_code"].value_counts().items()
-    }
+    location_counts = _get_value_counts(
+        df["location_code"]
+    )
 
     # ------------------------------------------------------------------
     # Build report
@@ -124,7 +214,9 @@ def generate_quality_report(
     report = {
         "report_metadata": {
             "dataset": "ICE Certified Coffee Stocks",
-            "generated_at": pd.Timestamp.now().isoformat(),
+            "generated_at": (
+                pd.Timestamp.now().isoformat()
+            ),
         },
 
         "source_files": {
@@ -133,7 +225,9 @@ def generate_quality_report(
             "robusta_files_selected_for_parsing": (
                 robusta_selected_file_count
             ),
-            "identical_duplicate_groups": duplicate_groups_count,
+            "identical_duplicate_groups": (
+                duplicate_groups_count
+            ),
         },
 
         "dataset_summary": {
@@ -150,6 +244,11 @@ def generate_quality_report(
                 if pd.notna(report_date_max)
                 else None
             ),
+        },
+
+        "date_coverage": {
+            "Arabica": arabica_date_coverage,
+            "Robusta": robusta_date_coverage,
         },
 
         "distributions": {
@@ -169,8 +268,12 @@ def generate_quality_report(
         },
 
         "quantity_checks": {
-            "negative_quantity_count": negative_quantity_count,
-            "zero_quantity_count": zero_quantity_count,
+            "negative_quantity_count": (
+                negative_quantity_count
+            ),
+            "zero_quantity_count": (
+                zero_quantity_count
+            ),
         },
 
         "quality_status": {
@@ -204,7 +307,8 @@ def generate_quality_report(
         )
 
     print(
-        f"\nData quality report saved to: {output_path}"
+        f"\nData quality report saved to: "
+        f"{output_path}"
     )
 
     return report

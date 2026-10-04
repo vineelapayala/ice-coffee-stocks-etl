@@ -30,3 +30,5 @@ desktop.ini
 # OS files
 .DS_Store
 Thumbs.db
+# Generated consolidated dataset
+coffee_stock_consolidated.csv
