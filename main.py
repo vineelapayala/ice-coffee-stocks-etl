@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.mongodb_loader import load_to_mongodb
 from src.pipeline import build_consolidated_dataset
 from src.quality_report import generate_quality_report
 
@@ -47,6 +48,8 @@ def main():
     output_df.to_csv(OUTPUT_FILE, index=False)
 
     print(f"\nConsolidated dataset saved to: {OUTPUT_FILE}")
+
+    load_to_mongodb(OUTPUT_FILE)
 
     print("\n" + "=" * 60)
     print("PIPELINE COMPLETE")

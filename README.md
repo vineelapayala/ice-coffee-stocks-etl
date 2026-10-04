@@ -447,6 +447,93 @@ data/processed/
 
 The raw data can therefore be regenerated using the extraction scripts.
 
+## MongoDB Integration
+
+The consolidated coffee stock dataset is loaded into MongoDB Atlas after the ETL pipeline completes.
+
+### Configuration
+
+MongoDB connection details are stored in a local `.env` file:
+
+```text
+MONGODB_URI=<your MongoDB connection string>
+MONGODB_DATABASE=ice_coffee_stocks
+MONGODB_COLLECTION=coffee_stock
+```
+
+The `.env` file is excluded from Git and must never be committed.
+
+### Collection
+
+The data is stored in:
+
+```text
+Database:   ice_coffee_stocks
+Collection: coffee_stock
+```
+
+### Idempotent Loading
+
+The MongoDB loader uses `upsert=True` with the following natural key:
+
+```text
+report_date
+cut_off_date
+coffee_type
+origin
+location_code
+stock_category
+unit
+```
+
+A unique compound index is created on these fields to prevent duplicate records.
+
+This makes the MongoDB load idempotent. Running the pipeline multiple times with the same source data does not create duplicate documents.
+
+For example, a subsequent pipeline run processes the existing 11,579 records without inserting duplicates:
+
+```text
+MongoDB load complete: 11,579 records processed
+Inserted: 0
+Modified: 0
+```
+
+### MongoDB Pipeline Flow
+
+```text
+ICE Reports
+    ↓
+Extraction
+    ↓
+Parsing
+    ↓
+Normalization
+    ↓
+Validation
+    ↓
+Consolidated CSV
+    ↓
+MongoDB Atlas
+```
+
+## Environment Setup
+
+Create a `.env` file in the project root before running the MongoDB-enabled pipeline:
+
+```text
+MONGODB_URI=<your MongoDB connection string>
+MONGODB_DATABASE=ice_coffee_stocks
+MONGODB_COLLECTION=coffee_stock
+```
+
+Then run:
+
+```powershell
+python main.py
+```
+
+The pipeline generates the consolidated CSV and loads the records into MongoDB.
+
 ## Future Improvements
 
 Potential future enhancements include:
