@@ -1,7 +1,7 @@
 pandas
 requests
 xlrd
+nodriver
+pytest
 pymongo
 python-dotenv
-pytest
-nodriver
