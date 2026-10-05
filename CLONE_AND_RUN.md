@@ -290,7 +290,7 @@ unit
 After the raw data has been downloaded and the pipeline has been executed, run:
 
 ```powershell
-pytest -v
+python -m pytest -v
 ```
 
 Expected result:
@@ -423,7 +423,7 @@ Finally:
 
 ```powershell
 python main.py
-pytest -v
+python -m pytest -v
 ```
 
 ---
