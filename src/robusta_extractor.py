@@ -1,6 +1,10 @@
+"""
+Downloads the Robusta stock CSV reports discovered from ICE Report 173.
+Handles individual file downloads, HTTP 429 rate limiting, retries, five-second
+intervals between batch downloads, and local storage of the historical reports.
+"""
+import time
 from pathlib import Path
-
-import requests
 
 from src.utils.file_utils import save_file
 from src.utils.http_utils import (
@@ -26,7 +30,7 @@ def download_robusta_report(
     max_retries: int = 3,
 ) -> Path:
     """
-    Download a Robusta stock report.
+    Download a single Robusta stock report.
 
     Returns:
         Path to the downloaded CSV file.
@@ -56,7 +60,6 @@ def download_robusta_report(
                 timeout=DEFAULT_TIMEOUT,
             )
 
-            # ICE rate limit.
             if response.status_code == 429:
 
                 retry_after = response.headers.get(
@@ -81,8 +84,6 @@ def download_robusta_report(
                 )
 
                 if attempt < max_retries:
-                    import time
-
                     time.sleep(
                         wait_seconds
                     )
@@ -96,7 +97,6 @@ def download_robusta_report(
             response.raise_for_status()
 
             if not response.content:
-
                 raise ValueError(
                     f"Empty response received "
                     f"from {url}"
@@ -118,3 +118,95 @@ def download_robusta_report(
         "Failed to download "
         f"Robusta report: {url}"
     )
+
+
+def download_robusta_reports(
+    reports: list[dict],
+    output_dir: Path,
+    delay_seconds: float = 5.0,
+) -> list[dict]:
+    """
+    Download multiple Robusta stock reports.
+
+    Returns:
+        List containing the status of each report.
+    """
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    results = []
+
+    for index, report in enumerate(
+        reports,
+        start=1,
+    ):
+
+        report_date = report["report_date"]
+        report_url = report["url"]
+        file_name = report["file_name"]
+
+        output_path = (
+            output_dir / file_name
+        )
+
+        already_existed = (
+            output_path.exists()
+        )
+
+        print(
+            f"\n[{index}/{len(reports)}] "
+            f"{report_date}"
+        )
+
+        try:
+            download_robusta_report(
+                url=report_url,
+                output_path=output_path,
+            )
+
+            results.append(
+                {
+                    "report_date": report_date,
+                    "status": (
+                        "already_exists"
+                        if already_existed
+                        else "downloaded"
+                    ),
+                    "file_path": output_path,
+                }
+            )
+
+        except (RuntimeError, ValueError) as exc:
+
+            print(
+                f"Failed: {report_date}"
+            )
+
+            print(exc)
+
+            results.append(
+                {
+                    "report_date": report_date,
+                    "status": "failed",
+                    "file_path": None,
+                    "error": str(exc),
+                }
+            )
+
+        if (
+            index < len(reports)
+            and not already_existed
+        ):
+            print(
+                f"Waiting "
+                f"{delay_seconds} seconds..."
+            )
+
+            time.sleep(
+                delay_seconds
+            )
+
+    return results

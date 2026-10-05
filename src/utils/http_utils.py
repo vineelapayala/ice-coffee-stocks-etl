@@ -1,3 +1,8 @@
+"""
+Provides shared HTTP utilities used by the ICE report downloaders.
+Creates requests sessions and calculates retry wait times using Retry-After headers
+or exponential backoff when ICE temporarily rate-limits requests.
+"""
 import requests
 
 

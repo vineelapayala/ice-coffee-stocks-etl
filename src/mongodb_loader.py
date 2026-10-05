@@ -1,3 +1,8 @@
+"""
+Loads the validated consolidated coffee stock records into MongoDB Atlas.
+Builds MongoDB-ready documents from the normalized dataset and performs the
+configured database operations using connection settings from environment variables.
+"""
 import os
 from pathlib import Path
 

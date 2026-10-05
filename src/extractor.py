@@ -1,3 +1,8 @@
+"""
+Downloads ICE Coffee C Arabica certified warehouse stock reports from Report 42.
+Generates date-specific XLS URLs and handles HTTP retries, rate limiting, and
+local storage of the downloaded daily stock reports.
+"""
 from datetime import date
 from pathlib import Path
 

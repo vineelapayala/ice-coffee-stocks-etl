@@ -1,3 +1,8 @@
+"""
+Tests the validation rules applied to the consolidated coffee stock dataset.
+Covers schema requirements, required values, coffee types, units, dates, quantities,
+and duplicate-record detection.
+"""
 from pathlib import Path
 
 import pandas as pd

@@ -1,3 +1,8 @@
+"""
+Runs the historical Robusta stock report download using previously discovered URLs.
+Reads discovered_reports.json and downloads the corresponding ICE CSV reports into
+the Robusta raw-data directory while reporting download results.
+"""
 import json
 from pathlib import Path
 
@@ -17,7 +22,6 @@ OUTPUT_DIR = Path(
 
 
 def main():
-
     print("=" * 60)
     print("ROBUSTA HISTORICAL DOWNLOAD")
     print("=" * 60)

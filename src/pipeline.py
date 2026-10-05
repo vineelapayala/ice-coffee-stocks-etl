@@ -1,3 +1,8 @@
+"""
+Builds the consolidated ICE coffee stock dataset from the Arabica and Robusta raw files.
+Parses both source formats, normalizes them to a common schema, removes duplicate
+Robusta source files, and combines the resulting records into one time-series dataset.
+"""
 from pathlib import Path
 import re
 

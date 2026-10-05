@@ -1,3 +1,8 @@
+"""
+Runs the historical Arabica stock report extraction for the configured date range.
+Creates the required raw-data directory and invokes the Arabica downloader for each
+date while reporting download and unavailable-file statistics.
+"""
 from datetime import date
 from pathlib import Path
 
@@ -7,7 +12,7 @@ from src.historical_extractor import (
 
 
 START_DATE = date(2025, 10, 3)
-END_DATE = date(2026, 10, 3)
+END_DATE = date(2025, 10, 25)
 
 OUTPUT_DIR = Path(
     "data/raw/arabica"

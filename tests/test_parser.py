@@ -1,3 +1,8 @@
+"""
+Tests the Arabica XLS parser using representative ICE Coffee C stock report data.
+Verifies extraction of the report date, warehouse records, stock categories,
+quantities, and source total reconciliation.
+"""
 from datetime import date
 from pathlib import Path
 

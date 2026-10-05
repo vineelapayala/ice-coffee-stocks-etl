@@ -1,3 +1,8 @@
+"""
+Validates the consolidated Arabica and Robusta coffee stock dataset against the
+required schema and business rules. Checks required fields, coffee types, units,
+dates, quantities, and duplicate records before the final dataset is produced.
+"""
 from pathlib import Path
 
 import pandas as pd

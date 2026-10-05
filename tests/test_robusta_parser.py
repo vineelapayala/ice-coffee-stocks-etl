@@ -1,3 +1,8 @@
+"""
+Tests the Robusta CSV parser using representative ICE Report 173 stock data.
+Verifies report and cutoff date parsing, stock category mapping, quantity conversion,
+and exclusion of aggregate GrandTotal records.
+"""
 from datetime import date
 from pathlib import Path
 

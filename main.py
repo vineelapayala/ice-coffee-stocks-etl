@@ -1,3 +1,8 @@
+"""
+Runs the complete ICE coffee stocks ETL workflow from extraction through output.
+Builds the consolidated Arabica and Robusta dataset, validates it, generates the
+data quality report, saves the CSV output, and optionally loads records into MongoDB.
+"""
 import os
 from pathlib import Path
 

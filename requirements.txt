@@ -1,7 +1,7 @@
-pandas
-requests
-xlrd
-nodriver
-pytest
-pymongo
-python-dotenv
+pandas==3.0.6
+requests==2.34.2
+xlrd==2.0.2
+nodriver==0.50.3
+pytest==9.1.1
+pymongo==4.18.2
+python-dotenv==1.2.4

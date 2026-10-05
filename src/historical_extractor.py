@@ -1,3 +1,8 @@
+"""
+Provides the historical Arabica extraction workflow for the requested date range.
+Generates the daily report dates, downloads available ICE XLS reports, and tracks
+downloaded, existing, and unavailable source files.
+"""
 from datetime import date, timedelta
 from pathlib import Path
 import time

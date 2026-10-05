@@ -1,3 +1,8 @@
+"""
+Parses ICE Robusta stock report CSV files into the common coffee stock schema.
+Extracts report and cutoff dates, port identifiers, and certificate stock categories
+while converting source quantities into normalized stock records measured in lots.
+"""
 from pathlib import Path
 
 import pandas as pd

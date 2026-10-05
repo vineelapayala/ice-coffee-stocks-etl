@@ -1,3 +1,8 @@
+"""
+Generates data quality metrics for the consolidated ICE coffee stock dataset.
+Reports source-file counts, date coverage, coffee-type distributions, nulls,
+duplicates, quantity checks, and the overall quality status of the dataset.
+"""
 from pathlib import Path
 import json
 

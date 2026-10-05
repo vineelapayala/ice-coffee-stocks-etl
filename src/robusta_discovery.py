@@ -1,3 +1,8 @@
+"""
+Discovers historical ICE Robusta stock report CSV download URLs from Report 173.
+Uses Nodriver and Chrome DevTools Protocol network interception to capture the
+dynamic API response generated after submitting the Stock Figures report.
+"""
 import asyncio
 import base64
 import json

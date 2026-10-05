@@ -1,1 +1,4 @@
-"""Shared utility functions for the ICE coffee stocks ETL pipeline."""
+"""
+Contains reusable utility functions shared by the ICE coffee stocks ETL modules.
+The package currently provides HTTP request and local file-management helpers.
+"""

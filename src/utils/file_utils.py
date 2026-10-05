@@ -1,3 +1,8 @@
+"""
+Provides file utilities used throughout the ICE coffee stocks ETL pipeline.
+Saves downloaded binary report files and calculates SHA-256 hashes used to identify
+identical source files during Robusta report processing.
+"""
 import hashlib
 from pathlib import Path
 

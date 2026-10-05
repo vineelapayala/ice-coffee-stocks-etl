@@ -1,3 +1,8 @@
+"""
+Parses ICE Coffee C Arabica warehouse stock XLS reports into normalized records.
+Extracts report dates, origins, warehouse locations, stock categories, and quantities
+from the TOTAL BAGS CERTIFIED section while excluding aggregate Total rows.
+"""
 from pathlib import Path
 import re
 
