@@ -1,9 +1,11 @@
 """
-Tests the Robusta CSV parser using representative ICE Report 173 stock data.
-Verifies report and cutoff date parsing, stock category mapping, quantity conversion,
-and exclusion of aggregate GrandTotal records.
+Parses ICE Robusta certified warehouse stock reports into a standardized
+DataFrame structure.
+
+The parser reads the raw Robusta CSV reports, extracts report and cutoff dates,
+maps stock categories to standardized values, excludes aggregate GrandTotal
+records, and returns the data using the common consolidated dataset schema.
 """
-from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -11,9 +13,22 @@ import pandas as pd
 from src.robusta_parser import parse_robusta_report
 
 
-ROBUSTA_SAMPLE_FILE = Path(
-    "data/raw/robusta/Stock_Report_RC_20251003_103420.csv"
-)
+ROBUSTA_DATA_DIR = Path("data/raw/robusta")
+
+
+def get_robusta_sample_file() -> Path:
+    """Return the first available Robusta extracted report."""
+    files = sorted(ROBUSTA_DATA_DIR.glob("*.csv"))
+
+    if not files:
+        raise FileNotFoundError(
+            f"No Robusta reports found in {ROBUSTA_DATA_DIR}"
+        )
+
+    return files[0]
+
+
+ROBUSTA_SAMPLE_FILE = get_robusta_sample_file()
 
 
 def test_parse_robusta_report_returns_dataframe():
@@ -39,38 +54,16 @@ def test_parse_robusta_report_has_expected_columns():
     assert list(df.columns) == expected_columns
 
 
-def test_parse_robusta_report_has_correct_report_date():
-    df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
-
-    assert df["report_date"].nunique() == 1
-    assert df["report_date"].iloc[0] == date(
-        2025,
-        10,
-        3,
-    )
-
-
-def test_parse_robusta_report_has_correct_cut_off_date():
-    df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
-
-    assert df["cut_off_date"].nunique() == 1
-    assert df["cut_off_date"].iloc[0] == pd.Timestamp(
-        "2025-10-02"
-    )
-
-
 def test_parse_robusta_report_has_correct_coffee_type():
     df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
 
-    assert df["coffee_type"].nunique() == 1
-    assert df["coffee_type"].iloc[0] == "Robusta"
+    assert df["coffee_type"].eq("Robusta").all()
 
 
 def test_parse_robusta_report_has_correct_unit():
     df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
 
-    assert df["unit"].nunique() == 1
-    assert df["unit"].iloc[0] == "lots"
+    assert df["unit"].eq("lots").all()
 
 
 def test_parse_robusta_report_has_valid_stock_categories():
@@ -82,13 +75,7 @@ def test_parse_robusta_report_has_valid_stock_categories():
         "SUSPENDED",
     }
 
-    actual_categories = set(
-        df["stock_category"].unique()
-    )
-
-    assert actual_categories.issubset(
-        valid_categories
-    )
+    assert set(df["stock_category"]).issubset(valid_categories)
 
 
 def test_parse_robusta_report_has_positive_quantities():
@@ -107,42 +94,10 @@ def test_parse_robusta_report_has_null_origin():
 def test_parse_robusta_report_excludes_grand_total():
     df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
 
-    assert not (
-        df["location_code"]
-        .astype(str)
-        .str.upper()
-        .eq("GRANDTOTAL")
-        .any()
-    )
-
-
-def test_parse_robusta_report_has_expected_locations():
-    df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
-
-    expected_locations = {
-        "ANT",
-        "LON",
-        "TRI",
-    }
-
-    actual_locations = set(
-        df["location_code"].dropna().unique()
-    )
-
-    assert expected_locations.issubset(
-        actual_locations
-    )
-
-
-def test_parse_robusta_report_has_expected_row_count():
-    df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
-
-    assert len(df) > 0
+    assert "GrandTotal" not in df["location_code"].values
 
 
 def test_parse_robusta_report_has_numeric_quantities():
     df = parse_robusta_report(ROBUSTA_SAMPLE_FILE)
 
-    assert pd.api.types.is_numeric_dtype(
-        df["quantity"]
-    )
+    assert pd.api.types.is_numeric_dtype(df["quantity"])

@@ -303,7 +303,7 @@ python -m pytest -v
 Expected result:
 
 ```text
-38 passed
+35 passed
 ```
 
 ---

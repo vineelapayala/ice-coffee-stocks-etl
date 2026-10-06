@@ -924,13 +924,13 @@ python -m pytest
 Current test suite:
 
 ```text
-38 tests
+35 tests
 ```
 
 Expected result:
 
 ```text
-38 passed
+35 passed
 ```
 
 ---

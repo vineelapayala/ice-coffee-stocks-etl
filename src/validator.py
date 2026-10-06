@@ -1,8 +1,11 @@
 """
 Validates the consolidated Arabica and Robusta coffee stock dataset against the
-required schema and business rules. Checks required fields, coffee types, units,
-dates, quantities, and duplicate records before the final dataset is produced.
+required schema and business rules.
+
+Checks required fields, coffee types, units, dates, quantities, and duplicate
+records before the final dataset is produced.
 """
+
 from pathlib import Path
 
 import pandas as pd
@@ -20,34 +23,27 @@ COMMON_COLUMNS = [
 ]
 
 
-def validate_schema(
-    df: pd.DataFrame,
-    file_path: Path,
-) -> None:
-    """Validate the schema of a parsed report."""
+def validate_schema(df: pd.DataFrame, file_path: Path) -> None:
+    """Validate that the DataFrame contains exactly the expected columns."""
 
     missing_columns = [
-        column
-        for column in COMMON_COLUMNS
+        column for column in COMMON_COLUMNS
         if column not in df.columns
     ]
 
     unexpected_columns = [
-        column
-        for column in df.columns
+        column for column in df.columns
         if column not in COMMON_COLUMNS
     ]
 
     if missing_columns:
         raise ValueError(
-            f"{file_path.name}: missing columns: "
-            f"{missing_columns}"
+            f"{file_path}: Missing required columns: {missing_columns}"
         )
 
     if unexpected_columns:
         raise ValueError(
-            f"{file_path.name}: unexpected columns: "
-            f"{unexpected_columns}"
+            f"{file_path}: Unexpected columns found: {unexpected_columns}"
         )
 
 
@@ -55,7 +51,7 @@ def validate_required_fields(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate mandatory fields."""
+    """Validate that mandatory fields do not contain null values."""
 
     required_columns = [
         "report_date",
@@ -71,9 +67,8 @@ def validate_required_fields(
 
         if null_count > 0:
             raise ValueError(
-                f"{file_path.name}: "
-                f"{null_count} null value(s) found "
-                f"in '{column}'."
+                f"{file_path}: Column '{column}' contains "
+                f"{null_count} null value(s)."
             )
 
 
@@ -81,21 +76,17 @@ def validate_coffee_type(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate coffee type."""
+    """Validate allowed coffee types."""
 
-    valid_types = {
-        "Arabica",
-        "Robusta",
-    }
+    valid_types = {"Arabica", "Robusta"}
 
-    invalid_types = set(
-        df["coffee_type"].dropna().unique()
-    ) - valid_types
+    invalid_types = (
+        set(df["coffee_type"].dropna().unique()) - valid_types
+    )
 
     if invalid_types:
         raise ValueError(
-            f"{file_path.name}: invalid coffee type(s): "
-            f"{invalid_types}"
+            f"{file_path}: Invalid coffee type(s): {invalid_types}"
         )
 
 
@@ -103,21 +94,17 @@ def validate_units(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate units and coffee-type/unit consistency."""
+    """Validate units and coffee-type-specific units."""
 
-    valid_units = {
-        "bags",
-        "lots",
-    }
+    valid_units = {"bags", "lots"}
 
-    invalid_units = set(
-        df["unit"].dropna().unique()
-    ) - valid_units
+    invalid_units = (
+        set(df["unit"].dropna().unique()) - valid_units
+    )
 
     if invalid_units:
         raise ValueError(
-            f"{file_path.name}: invalid unit(s): "
-            f"{invalid_units}"
+            f"{file_path}: Invalid unit(s): {invalid_units}"
         )
 
     arabica_units = set(
@@ -129,8 +116,8 @@ def validate_units(
 
     if arabica_units - {"bags"}:
         raise ValueError(
-            f"{file_path.name}: Arabica must use "
-            f"'bags'. Found: {arabica_units}"
+            f"{file_path}: Arabica must use 'bags'. "
+            f"Found: {arabica_units}"
         )
 
     robusta_units = set(
@@ -142,8 +129,8 @@ def validate_units(
 
     if robusta_units - {"lots"}:
         raise ValueError(
-            f"{file_path.name}: Robusta must use "
-            f"'lots'. Found: {robusta_units}"
+            f"{file_path}: Robusta must use 'lots'. "
+            f"Found: {robusta_units}"
         )
 
 
@@ -151,23 +138,21 @@ def validate_quantities(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate quantity values."""
+    """Validate that quantities are numeric, non-null, and non-negative."""
 
-    if not pd.api.types.is_numeric_dtype(
-        df["quantity"]
-    ):
+    if not pd.api.types.is_numeric_dtype(df["quantity"]):
         raise ValueError(
-            f"{file_path.name}: quantity is not numeric."
+            f"{file_path}: Quantity column must be numeric."
         )
 
     if df["quantity"].isna().any():
         raise ValueError(
-            f"{file_path.name}: null quantities found."
+            f"{file_path}: Quantity contains null values."
         )
 
     if (df["quantity"] < 0).any():
         raise ValueError(
-            f"{file_path.name}: negative quantities found."
+            f"{file_path}: Quantity contains negative values."
         )
 
 
@@ -175,23 +160,22 @@ def validate_dates(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate report and Robusta cut-off dates."""
+    """Validate report dates and Robusta cutoff dates."""
 
     report_dates = pd.to_datetime(
         df["report_date"],
+        format="%Y-%m-%d",
         errors="coerce",
     )
 
     if report_dates.isna().any():
         raise ValueError(
-            f"{file_path.name}: invalid report date found."
+            f"{file_path}: Invalid or null report_date values found."
         )
 
-    if df["coffee_type"].eq("Robusta").any():
-        robusta = df[
-            df["coffee_type"] == "Robusta"
-        ]
+    robusta = df[df["coffee_type"] == "Robusta"]
 
+    if not robusta.empty:
         cut_off_dates = pd.to_datetime(
             robusta["cut_off_date"],
             errors="coerce",
@@ -199,8 +183,8 @@ def validate_dates(
 
         if cut_off_dates.isna().any():
             raise ValueError(
-                f"{file_path.name}: Robusta report "
-                f"contains invalid cut-off date."
+                f"{file_path}: Robusta records must have valid "
+                f"cut_off_date values."
             )
 
 
@@ -208,7 +192,7 @@ def validate_duplicates(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Validate the expected natural grain."""
+    """Validate that records are unique at the expected dataset grain."""
 
     grain_columns = [
         "report_date",
@@ -227,9 +211,7 @@ def validate_duplicates(
 
     if duplicate_count > 0:
         raise ValueError(
-            f"{file_path.name}: "
-            f"{duplicate_count} duplicate row(s) "
-            f"found at the expected natural grain."
+            f"{file_path}: Found {duplicate_count} duplicate record(s)."
         )
 
 
@@ -237,57 +219,25 @@ def validate_report(
     df: pd.DataFrame,
     file_path: Path,
 ) -> None:
-    """Run all quality checks for a parsed report."""
+    """Run all validation checks for a source report."""
 
-    validate_schema(
-        df,
-        file_path,
-    )
-
-    validate_required_fields(
-        df,
-        file_path,
-    )
-
-    validate_coffee_type(
-        df,
-        file_path,
-    )
-
-    validate_units(
-        df,
-        file_path,
-    )
-
-    validate_quantities(
-        df,
-        file_path,
-    )
-
-    validate_dates(
-        df,
-        file_path,
-    )
-
-    validate_duplicates(
-        df,
-        file_path,
-    )
+    validate_schema(df, file_path)
+    validate_required_fields(df, file_path)
+    validate_coffee_type(df, file_path)
+    validate_units(df, file_path)
+    validate_quantities(df, file_path)
+    validate_dates(df, file_path)
+    validate_duplicates(df, file_path)
 
 
 def validate_consolidated_dataset(
     df: pd.DataFrame,
 ) -> None:
-    """Run final quality checks on the consolidated dataset."""
+    """Validate the final consolidated dataset."""
 
     if df.empty:
-        raise ValueError(
-            "Consolidated dataset is empty."
-        )
+        raise ValueError("Consolidated dataset is empty.")
 
     file_path = Path("consolidated_dataset")
 
-    validate_report(
-        df,
-        file_path,
-    )
+    validate_report(df, file_path)
