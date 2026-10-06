@@ -395,7 +395,7 @@ If Git and Python are already installed, the basic workflow is:
 git clone https://github.com/vineelapayala/ice-coffee-stocks-etl.git
 cd ice-coffee-stocks-etl
 
-python -m venv .venv
+py -3.13 -m venv .venv
 .venv\Scripts\Activate.ps1
 
 python -m pip install --upgrade pip
