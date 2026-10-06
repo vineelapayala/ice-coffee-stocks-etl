@@ -12,7 +12,7 @@ from src.historical_extractor import (
 
 
 START_DATE = date(2025, 10, 3)
-END_DATE = date(2025, 10, 25)
+END_DATE = date(2026, 10, 3)
 
 OUTPUT_DIR = Path(
     "data/raw/arabica"

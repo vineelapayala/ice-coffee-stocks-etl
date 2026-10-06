@@ -355,42 +355,6 @@ For a complete setup guide, see:
 CLONE_AND_RUN.md
 ```
 
-## 2. Create a Virtual Environment
-
-```powershell
-python -m venv .venv
-```
-
-## 3. Activate the Environment
-
-### Windows PowerShell
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-### Linux / macOS
-
-```bash
-source .venv/bin/activate
-```
-
-## 4. Install Dependencies
-
-```powershell
-pip install -r requirements.txt
-```
-
----
-
-# Running the Project
-
-Once the required raw source files are available, run:
-
-```powershell
-python main.py
-```
-
 The main pipeline performs the following operations:
 
 ```text

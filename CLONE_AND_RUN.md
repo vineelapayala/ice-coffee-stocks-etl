@@ -18,7 +18,14 @@ git --version
 
 ### Check Python
 
-Python 3.10+ is required.
+### Install Python 3.13
+
+This project is tested with Python 3.13.1
+
+If Python 3.13 is not installed, you can install it using:
+
+```powershell
+winget install Python.Python.3.13
 
 ```powershell
 python --version
@@ -40,7 +47,7 @@ cd ice-coffee-stocks-etl
 # 3. Create and Activate Virtual Environment
 
 ```powershell
-python -m venv .venv
+py -3.13 -m venv .venv
 ```
 
 Activate it:
